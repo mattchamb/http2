@@ -49,6 +49,7 @@
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
+    <Compile Include="huffmancodes.fs" />
     <Compile Include="hpack.fs" />
     <Compile Include="Library1.fs" />
     <None Include="Script.fsx" />
