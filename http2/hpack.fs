@@ -6,15 +6,27 @@ open System.Collections.Generic
 module hpack =
 
     module compression =
+
+        type EncodedChar =
+            | Simple of byte
+            | EOS
         
         type TreeNode =
             | Leaf of char
             | Node of TreeNode * TreeNode
+            | ErrorLeaf
+
+        let buildHuffmanTree (table: bool array array) =
+            let rec buildNode depth =
+                ErrorLeaf
+
+            buildNode 0
 
         let huffmanTree = Node (Leaf 'a', Leaf 'a')
 
         let rec decode data treeNode result =
                 match data, treeNode with
+                | _, ErrorLeaf -> failwith ""
                 | [], Node _ -> failwith ""
                 | [], Leaf c -> c :: result
                 | _, Leaf c -> decode data treeNode (c :: result)
@@ -23,9 +35,9 @@ module hpack =
                     | true -> decode rest left result
                     | false -> decode rest right result
 
-        let decompress (data: bool list) =
-            let asdf = decode data huffmanTree []
-            new String(asdf |> List.rev |> List.toArray)
+        let decompress data =
+            let resultData = decode data huffmanTree []
+            new String(resultData |> List.rev |> List.toArray)
 
     
     type IndexingAction =
