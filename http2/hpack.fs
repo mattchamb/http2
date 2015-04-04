@@ -4,6 +4,29 @@ open System
 open System.Collections.Generic
 
 module hpack =
+
+    module compression =
+        
+        type TreeNode =
+            | Leaf of char
+            | Node of TreeNode * TreeNode
+
+        let huffmanTree = Node (Leaf 'a', Leaf 'a')
+
+        let rec decode data treeNode result =
+                match data, treeNode with
+                | [], Node _ -> failwith ""
+                | [], Leaf c -> c :: result
+                | _, Leaf c -> decode data treeNode (c :: result)
+                | bit :: rest, Node (left, right) -> 
+                    match bit with
+                    | true -> decode rest left result
+                    | false -> decode rest right result
+
+        let decompress (data: bool list) =
+            let asdf = decode data huffmanTree []
+            new String(asdf |> List.rev |> List.toArray)
+
     
     type IndexingAction =
         | Incremental
@@ -34,70 +57,69 @@ module hpack =
         
 
     let staticHeaderTable =
-        [
-            1, {Name = ":authority"; Value = ""};
-            2, {Name = ":method"; Value = "GET"};
-            3, {Name = ":method"; Value = "POST"};
-            4, {Name = ":path"; Value = "/"};
-            5, {Name = ":path"; Value = "/index.html"};
-            6, {Name = ":scheme"; Value = "http"};
-            7, {Name = ":scheme"; Value = "https"};
-            8, {Name = ":status"; Value = "200"};
-            9, {Name = ":status"; Value = "204"};
-            10, {Name = ":status"; Value = "206"};
-            11, {Name = ":status"; Value = "304"};                                
-            12, {Name = ":status"; Value = "400"};
-            13, {Name = ":status"; Value = "404"};                                 
-            14, {Name = ":status"; Value = "500"};
-            15, {Name = "accept-charset"; Value = ""};
-            16, {Name = "accept-encoding"; Value = ""};
-            17, {Name = "accept-language"; Value = ""};
-            18, {Name = "accept-ranges"; Value = ""};               
-            19, {Name = "accept"; Value = ""};
-            20, {Name = "access-control-allow-origin"; Value = ""};
-            21, {Name = "age"; Value = ""};
-            22, {Name = "allow"; Value = ""};
-            23, {Name = "authorization"; Value = ""};
-            24, {Name = "cache-control"; Value = ""};
-            25, {Name = "content-disposition"; Value = ""};
-            26, {Name = "content-encoding"; Value = ""};
-            27, {Name = "content-language"; Value = ""};
-            28, {Name = "content-length"; Value = ""};
-            29, {Name = "content-location"; Value = ""};
-            30, {Name = "content-range"; Value = ""};
-            31, {Name = "content-type"; Value = ""};
-            32, {Name = "cookie"; Value = ""};
-            33, {Name = "date"; Value = ""};
-            34, {Name = "etag"; Value = ""};
-            35, {Name = "expect"; Value = ""};
-            36, {Name = "expires"; Value = ""};
-            37, {Name = "from"; Value = ""};
-            38, {Name = "host"; Value = ""};
-            39, {Name = "if-match"; Value = ""};
-            40, {Name = "if-modified-since"; Value = ""};
-            41, {Name = "if-none-match"; Value = ""};
-            42, {Name = "if-range"; Value = ""};
-            43, {Name = "if-unmodified-since"; Value = ""};
-            44, {Name = "last-modified"; Value = ""};
-            45, {Name = "link"; Value = ""};
-            46, {Name = "location"; Value = ""};
-            47, {Name = "max-forwards"; Value = ""};
-            48, {Name = "proxy-authenticate"; Value = ""};
-            49, {Name = "proxy-authorization"; Value = ""};
-            50, {Name = "range"; Value = ""};
-            51, {Name = "referer"; Value = ""};
-            52, {Name = "refresh"; Value = ""};
-            53, {Name = "retry-after"; Value = ""};
-            54, {Name = "server"; Value = ""};
-            55, {Name = "set-cookie"; Value = ""};
-            56, {Name = "strict-transport-security"; Value = ""};
-            57, {Name = "transfer-encoding"; Value = ""};
-            58, {Name = "user-agent"; Value = ""};
-            59, {Name = "vary"; Value = ""};
-            60, {Name = "via"; Value = ""};
-            61, {Name = "www-authenticate"; Value = ""};
-        ]
-        |> Map.ofList
+        [|
+            {Name = ":authority"; Value = ""};
+            {Name = ":method"; Value = "GET"};
+            {Name = ":method"; Value = "POST"};
+            {Name = ":path"; Value = "/"};
+            {Name = ":path"; Value = "/index.html"};
+            {Name = ":scheme"; Value = "http"};
+            {Name = ":scheme"; Value = "https"};
+            {Name = ":status"; Value = "200"};
+            {Name = ":status"; Value = "204"};
+            {Name = ":status"; Value = "206"};
+            {Name = ":status"; Value = "304"};                                
+            {Name = ":status"; Value = "400"};
+            {Name = ":status"; Value = "404"};                                 
+            {Name = ":status"; Value = "500"};
+            {Name = "accept-charset"; Value = ""};
+            {Name = "accept-encoding"; Value = ""};
+            {Name = "accept-language"; Value = ""};
+            {Name = "accept-ranges"; Value = ""};               
+            {Name = "accept"; Value = ""};
+            {Name = "access-control-allow-origin"; Value = ""};
+            {Name = "age"; Value = ""};
+            {Name = "allow"; Value = ""};
+            {Name = "authorization"; Value = ""};
+            {Name = "cache-control"; Value = ""};
+            {Name = "content-disposition"; Value = ""};
+            {Name = "content-encoding"; Value = ""};
+            {Name = "content-language"; Value = ""};
+            {Name = "content-length"; Value = ""};
+            {Name = "content-location"; Value = ""};
+            {Name = "content-range"; Value = ""};
+            {Name = "content-type"; Value = ""};
+            {Name = "cookie"; Value = ""};
+            {Name = "date"; Value = ""};
+            {Name = "etag"; Value = ""};
+            {Name = "expect"; Value = ""};
+            {Name = "expires"; Value = ""};
+            {Name = "from"; Value = ""};
+            {Name = "host"; Value = ""};
+            {Name = "if-match"; Value = ""};
+            {Name = "if-modified-since"; Value = ""};
+            {Name = "if-none-match"; Value = ""};
+            {Name = "if-range"; Value = ""};
+            {Name = "if-unmodified-since"; Value = ""};
+            {Name = "last-modified"; Value = ""};
+            {Name = "link"; Value = ""};
+            {Name = "location"; Value = ""};
+            {Name = "max-forwards"; Value = ""};
+            {Name = "proxy-authenticate"; Value = ""};
+            {Name = "proxy-authorization"; Value = ""};
+            {Name = "range"; Value = ""};
+            {Name = "referer"; Value = ""};
+            {Name = "refresh"; Value = ""};
+            {Name = "retry-after"; Value = ""};
+            {Name = "server"; Value = ""};
+            {Name = "set-cookie"; Value = ""};
+            {Name = "strict-transport-security"; Value = ""};
+            {Name = "transfer-encoding"; Value = ""};
+            {Name = "user-agent"; Value = ""};
+            {Name = "vary"; Value = ""};
+            {Name = "via"; Value = ""};
+            {Name = "www-authenticate"; Value = ""};
+        |]
 
     type DynamicHeaderTable = {
         entries: (string * string) list
@@ -116,9 +138,11 @@ module hpack =
                 | NewName(_, n, v) -> {Name = n; Value = v}
 
             | IndexedHeader index -> 
-                let header = staticHeaderTable.TryFind index
-                match header with
-                | None -> failwith "Could not find indexed value in static table. TODO: lookup in dynamic table."
-                | Some h -> h
+                if index < 0 then
+                    failwith "Invalid index is a negative number."
+                else if index < staticHeaderTable.Length then
+                    staticHeaderTable.[index]
+                else 
+                    failwith "Could not find indexed value in static table. TODO: lookup in dynamic table."
         headers
         |> List.map decodeHeader
