@@ -1,46 +1,11 @@
 ﻿namespace http2
 
 open System
+open System.Collections
 open System.Collections.Generic
 
 module hpack =
-
-    module data =
-        let decodeInteger (prefixSize: int)(data: byte list) =
-            if prefixSize < 1 || prefixSize > 8 then
-                failwith "Invalid prefixSize"
-
-            if data.Length = 0 then
-                failwith "Not enough data"
-
-            let mutable i = uint64 <| List.head data
-
-            if prefixSize < 8 then
-                i <- i &&& ((1UL <<< prefixSize) - 1UL)
-            
-            if i < (pown 2UL prefixSize) - 1UL then
-                i, List.tail data
-            else
-                let mutable idx = 1
-                let mutable m = 0
-                let mutable b = data.[idx]
-                let mutable rem = data |> List.tail |> List.tail
-                idx <- idx + 1
-                i <- i + uint64((b &&& 127uy)) * (pown 2UL m)
-                m <- m + 7
-
-                let mutable loop = (b &&& 128uy) = 128uy
-
-                while loop do
-                    b <- data.[idx]
-                    idx <- idx + 1
-                    rem <- rem |> List.tail
-                    i <- i + uint64((b &&& 127uy)) * (pown 2UL m)
-                    m <- m + 7
-                    loop <- (b &&& 128uy) = 128uy
-
-                i, rem
-                    
+              
     module compression =
 
         type HuffmanPattern = int * (bool array)
@@ -326,3 +291,77 @@ module hpack =
                 headerResult, updatedTable
         | None -> 
             headerResult, dynamicTable
+
+    module data =
+        let decodeInteger (prefixSize: int)(data: byte list) =
+            if prefixSize < 1 || prefixSize > 8 then
+                failwith "Invalid prefixSize"
+
+            if data.Length = 0 then
+                failwith "Not enough data"
+
+            let mutable i = uint64 <| List.head data
+
+            if prefixSize < 8 then
+                i <- i &&& ((1UL <<< prefixSize) - 1UL)
+            
+            if i < (pown 2UL prefixSize) - 1UL then
+                i, List.tail data
+            else
+                let mutable idx = 1
+                let mutable m = 0
+                let mutable b = data.[idx]
+                let mutable rem = data |> List.tail |> List.tail
+                idx <- idx + 1
+                i <- i + uint64((b &&& 127uy)) * (pown 2UL m)
+                m <- m + 7
+
+                let mutable loop = (b &&& 128uy) = 128uy
+
+                while loop do
+                    b <- data.[idx]
+                    idx <- idx + 1
+                    rem <- rem |> List.tail
+                    i <- i + uint64((b &&& 127uy)) * (pown 2UL m)
+                    m <- m + 7
+                    loop <- (b &&& 128uy) = 128uy
+
+                i, rem
+
+        let toBitArray (data: byte list) =
+            let bytesToBits (bytes:byte[])  =          
+                let bitMasks = Seq.unfold (fun bitIndex -> Some((byte(pown 2 bitIndex), bitIndex), bitIndex + 1)) 0     
+                                    |> Seq.take 8
+                                    |> Seq.toList
+                                    |> List.rev
+
+                let byteToBitArray b = List.map (fun (bitMask, bitPosition) -> ((b &&& bitMask) >>> bitPosition) = 1uy) bitMasks
+
+                bytes
+                    |> Array.toList
+                    |> List.map byteToBitArray
+                    |> List.collect id
+            bytesToBits (List.toArray data)
+
+        let decodeString (data: byte list) = 
+            let strLength, remainingData = decodeInteger 7 data
+            let isHuffmanEncoded = data.Head &&& 0x80uy <> 0uy
+            if remainingData.Length < (int32 strLength) then
+                failwith "Not enough data"
+            let strData = 
+                remainingData
+                |> Seq.take (int32 strLength)
+                |> Seq.toList
+
+            let resultStr = 
+                if isHuffmanEncoded then
+                    toBitArray strData
+                    |> compression.decompress 
+                else
+                    System.Text.Encoding.ASCII.GetString(strData |> List.toArray)
+
+            let unconsumedData =
+                remainingData
+                |> Seq.skip (int32 strLength)
+                |> Seq.toList
+            resultStr, unconsumedData

@@ -33,3 +33,17 @@ let ``asd2233f``() =
     let a, b = decodeInteger 8 [ 0b11111111uy; 0b00011010uy; 0b00001010uy ]
     a |> should equal 281UL
     b |> should equal [0b00001010uy]
+
+[<Test>]
+let ``Try decoding something``() =
+    let data = [
+        0x8cuy; 0xf1uy; 0xe3uy; 0xc2uy; 
+        0xe5uy; 0xf2uy; 0x3auy; 0x6buy; 
+        0xa0uy; 0xabuy; 0x90uy; 0xf4uy;
+        0xffuy
+    ]
+    let s, r = decodeString data
+    s |> should equal "www.example.com"
+    r |> should equal []
+
+
