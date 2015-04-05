@@ -201,7 +201,7 @@ module hpack =
 
     type IndexingAction =
         | Incremental
-        | NonIndexed
+        | NonIndexing
 
     type LiteralHeaderKind =
         | IndexedName of IndexingAction * int * string
