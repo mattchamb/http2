@@ -5,6 +5,42 @@ open System.Collections.Generic
 
 module hpack =
 
+    module data =
+        let decodeInteger (prefixSize: int)(data: byte list) =
+            if prefixSize < 1 || prefixSize > 8 then
+                failwith "Invalid prefixSize"
+
+            if data.Length = 0 then
+                failwith "Not enough data"
+
+            let mutable i = uint64 data.[0]
+
+            if prefixSize < 8 then
+                i <- i &&& ((1UL <<< prefixSize) - 1UL)
+            
+            if i < (pown 2UL prefixSize) - 1UL then
+                i, List.tail data
+            else
+                let mutable idx = 1
+                let mutable m = 0
+                let mutable b = data.[idx]
+                let mutable rem = data |> List.tail |> List.tail
+                idx <- idx + 1
+                i <- i + uint64((b &&& 127uy)) * (pown 2UL m)
+                m <- m + 7
+
+                let mutable loop = true
+
+                while loop do
+                    b <- data.[idx]
+                    idx <- idx + 1
+                    rem <- rem |> List.tail
+                    i <- i + uint64((b &&& 127uy)) * (pown 2UL m)
+                    m <- m + 7
+                    loop <- (b &&& 128uy) = 128uy
+
+                i, rem
+                    
     module compression =
 
         type HuffmanPattern = int * (bool array)

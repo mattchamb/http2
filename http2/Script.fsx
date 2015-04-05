@@ -2,16 +2,19 @@
 #r @"..\packages\Rx-Core.2.2.5\lib\net45\System.Reactive.Core.dll"
 #r @"..\packages\Rx-Linq.2.2.5\lib\net45\System.Reactive.Linq.dll"
 #r @"..\packages\FSharp.Control.Reactive.3.1.1\lib\net40\FSharp.Control.Reactive.dll"
-#r @"System.Net.Http.dll"
 
-#load "Library1.fs"
+
 #load "huffmancodes.fs"
-#load "hpack.fs"
-
 open http2
-open http2.hpack.compression
+#load "hpack.fs"
+open http2
+open http2.hpack.data
 
-let asdf = buildHuffmanTree huffmancodes.table
+
+
+let data = [| 0b00001010uy |]
+
+let r = decodeInteger 5 data
 
 
 //open System.Security.Cryptography.X509Certificates

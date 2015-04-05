@@ -52,6 +52,7 @@
     <Compile Include="huffmantreebuilding.fs" />
     <Compile Include="huffmandecoding.fs" />
     <Compile Include="headerdecoding.fs" />
+    <Compile Include="varint.fs" />
     <Content Include="packages.config" />
     <Content Include="app.config" />
   </ItemGroup>
