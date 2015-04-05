@@ -13,7 +13,7 @@ module hpack =
             if data.Length = 0 then
                 failwith "Not enough data"
 
-            let mutable i = uint64 data.[0]
+            let mutable i = uint64 <| List.head data
 
             if prefixSize < 8 then
                 i <- i &&& ((1UL <<< prefixSize) - 1UL)
@@ -29,7 +29,7 @@ module hpack =
                 i <- i + uint64((b &&& 127uy)) * (pown 2UL m)
                 m <- m + 7
 
-                let mutable loop = true
+                let mutable loop = (b &&& 128uy) = 128uy
 
                 while loop do
                     b <- data.[idx]
