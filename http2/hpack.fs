@@ -118,6 +118,7 @@ module hpack =
         Value: string
     }
 
+    /// http://http2.github.io/http2-spec/compression.html#static.table.definition
     let staticHeaderTable =
         [|
             {Name = ":authority"; Value = ""};
@@ -183,6 +184,10 @@ module hpack =
             {Name = "www-authenticate"; Value = ""};
         |]
 
+    let lookupStaticTable idx =
+        // In the spec, indexes start at 1
+        staticHeaderTable.[idx - 1]
+
     type DynamicHeaderTable = {
         entries: HeaderTableEntry list
     }
@@ -221,7 +226,7 @@ module hpack =
         | IndexedName(idxAction, tblIdx, v) -> 
             match tblIdx with
             | Static -> 
-                idxAction, { staticHeaderTable.[tblIdx] with Value = v }
+                idxAction, { lookupStaticTable tblIdx with Value = v }
             | Dynamic -> 
                 let r = lookup dynamicTable tblIdx
                 match r with
@@ -240,8 +245,8 @@ module hpack =
             | IndexedHeader tblIdx -> 
                 if tblIdx < 0 then
                     failwith "Invalid index: negative number."
-                else if tblIdx < staticHeaderTable.Length then
-                    None, staticHeaderTable.[tblIdx]
+                else if tblIdx <= staticHeaderTable.Length then
+                    None, lookupStaticTable tblIdx
                 else 
                     let header = lookup dynamicTable tblIdx
                     match header with
