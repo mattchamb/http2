@@ -4,7 +4,7 @@ open FsUnit
 open NUnit.Framework
 open http2.hpack
 
-let emptyDynamicTable = { entries = [] }
+let emptyDynamicTable = { maxSize= 1024; entries = [] }
 
 [<Test>]
 let ``Accessing first static indexed header``() =
@@ -50,12 +50,12 @@ let ``Processing header with NonIndexing set does not change dynamic table``() =
 
     newTable |> should equal emptyDynamicTable
 
-//[<Test>]
-//let ``Processing header with Incremental indexing updates dynamic table``() =
-//    let header = 
-//        LiteralHeader (
-//            NewName (
-//                Incremental, "NewName", "NewValue"))
-//    let _, newTable = processHeader header emptyDynamicTable
-//
-//    newTable |> should not' (equal emptyDynamicTable)
+[<Test>]
+let ``Processing header with Incremental indexing updates dynamic table``() =
+    let header = 
+        LiteralHeader (
+            NewName (
+                Incremental, "NewName", "NewValue"))
+    let _, newTable = processHeader header emptyDynamicTable
+
+    newTable |> should not' (equal emptyDynamicTable)

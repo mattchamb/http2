@@ -189,15 +189,29 @@ module hpack =
         staticHeaderTable.[idx - 1]
 
     type DynamicHeaderTable = {
+        maxSize: int
         entries: HeaderTableEntry list
     }
+
+    let octetLength str =
+        System.Text.Encoding.ASCII.GetByteCount (str: string)
+
+    let getEntrySize entry = 
+        (octetLength entry.Name) + (octetLength entry.Value)
+
+    /// http://http2.github.io/http2-spec/compression.html#calculating.table.size
+    let getTableSize (table: DynamicHeaderTable) =
+        let size = 
+            table.entries
+            |> Seq.sumBy getEntrySize
+        size + 32 // add 32 because it is in the specification.
 
     let lookup table index =
         let len = table.entries.Length
         match len with
         | 0 -> None
         | _ when index >= len -> None
-        | _ -> Some (List.nth table.entries index)
+        | _ -> Some (table.entries.[index])
 
     type IndexingAction =
         | Incremental
@@ -251,17 +265,28 @@ module hpack =
                     let header = lookup dynamicTable tblIdx
                     match header with
                     | None -> failwith ""
-                    | Some hdr -> None, hdr
+                    | Some h -> None, h
                     
 
     let updateDynamicTable header table =
-        table
+        let tblSize = ref 32 // Spec says there is 32 octet overhead
+        let newEntries = 
+            header :: table.entries
+            |> Seq.takeWhile (fun h -> 
+                let entrySize = getEntrySize h
+                tblSize := !tblSize + entrySize
+                table.maxSize > !tblSize)
+            |> Seq.toList
+        { table with entries = newEntries}
     
     let processHeader header dynamicTable =
         let updateAction, headerResult = decodeHeaderWithTable header dynamicTable
         match updateAction with
         | Some action -> 
-            let updatedTable = updateDynamicTable headerResult dynamicTable
-            headerResult, updatedTable
+            match action with
+            | NonIndexing -> headerResult, dynamicTable
+            | Incremental -> 
+                let updatedTable = updateDynamicTable headerResult dynamicTable
+                headerResult, updatedTable
         | None -> 
             headerResult, dynamicTable
