@@ -22,9 +22,28 @@ let ``Single true code goes to left branch``() =
     |]
     let tree = buildHuffmanTree table
 
-    let expected = Node (Leaf (Simple 0uy), ErrorLeaf)
+    let expected = Node (Leaf (Simple '\000'), ErrorLeaf)
 
     tree |> should equal expected
+
+[<Test>]
+let ``Byte val of 256 is treated as EOS``() = 
+    let table = [|
+        256, [|true|]
+    |]
+    let tree = buildHuffmanTree table
+
+    let expected = Node (Leaf EOS, ErrorLeaf)
+
+    tree |> should equal expected
+
+[<Test>]
+let ``Byte value out of range throws exception``() = 
+    let table = [|
+        500, [|false; false|];
+    |]
+
+    (fun () -> buildHuffmanTree table |> ignore) |> should throw typeof<System.Exception>
 
 [<Test>]
 let ``Single false code goes to right branch``() = 
@@ -33,7 +52,7 @@ let ``Single false code goes to right branch``() =
     |]
     let tree = buildHuffmanTree table
 
-    let expected = Node (ErrorLeaf, Leaf (Simple 0uy))
+    let expected = Node (ErrorLeaf, Leaf (Simple '\000'))
 
     tree |> should equal expected
 
@@ -49,7 +68,7 @@ let ``Two false codes create right branches``() =
             (ErrorLeaf, 
             Node 
                 (ErrorLeaf,
-                 Leaf (Simple 48uy))
+                 Leaf (Simple '0'))
             )
 
     tree |> should equal expected
@@ -70,3 +89,18 @@ let ``Duplicate patterns throws exception``() =
     |]
 
     (fun () -> buildHuffmanTree table |> ignore) |> should throw typeof<System.Exception>
+
+    
+[<Test>]
+let ``Negative values throw exception``() = 
+    let table = [|
+        -1, [|false|];
+    |]
+        (fun () -> buildHuffmanTree table |> ignore) |> should throw typeof<System.Exception>
+
+[<Test>]
+let ``Values over 256 throw exception``() = 
+    let table = [|
+        257, [|false|];
+    |]
+        (fun () -> buildHuffmanTree table |> ignore) |> should throw typeof<System.Exception>

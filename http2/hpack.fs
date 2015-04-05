@@ -10,7 +10,7 @@ module hpack =
         type HuffmanPattern = int * (bool array)
 
         type EncodedChar =
-            | Simple of byte
+            | Simple of char
             | EOS
         
         type TreeNode =
@@ -23,7 +23,11 @@ module hpack =
                 table
                 |> Seq.distinctBy snd
                 |> Seq.length
-            uniq = table.Length
+            let hasOutOfRange =
+                table
+                |> Seq.map fst
+                |> Seq.exists (fun n -> n < 0 || n > 256)
+            uniq = table.Length && not hasOutOfRange
 
         let buildHuffmanTree table =
             
@@ -41,7 +45,7 @@ module hpack =
                     if data.Length - 1 = depth then
                         match ch with
                         | 256 -> Leaf EOS
-                        | _ -> Simple (byte ch) |> Leaf
+                        | _ -> Simple (char ch) |> Leaf
                     else 
                         let child = buildBranch (depth + 1) codes
                         if data.[depth] then
