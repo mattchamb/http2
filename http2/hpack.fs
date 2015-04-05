@@ -7,37 +7,82 @@ module hpack =
 
     module compression =
 
+        type HuffmanPattern = int * (bool array)
+
         type EncodedChar =
             | Simple of byte
             | EOS
         
         type TreeNode =
-            | Leaf of char
+            | Leaf of EncodedChar
             | Node of TreeNode * TreeNode
             | ErrorLeaf
 
-        let buildHuffmanTree (table: bool array array) =
-            let rec buildNode depth =
-                ErrorLeaf
+        let isValidTable (table: HuffmanPattern array) =
+            let uniq = 
+                table
+                |> Seq.distinctBy snd
+                |> Seq.length
+            uniq = table.Length
 
-            buildNode 0
+        let buildHuffmanTree table =
+            
+            if not <| isValidTable table then
+                failwith "The provided huffman encoding table is invalid."
 
-        let huffmanTree = Node (Leaf 'a', Leaf 'a')
+            let longEnough depth (values: 'a array) = 
+                depth < values.Length
 
-        let rec decode data treeNode result =
-                match data, treeNode with
-                | _, ErrorLeaf -> failwith ""
-                | [], Node _ -> failwith ""
-                | [], Leaf c -> c :: result
-                | _, Leaf c -> decode data treeNode (c :: result)
-                | bit :: rest, Node (left, right) -> 
-                    match bit with
-                    | true -> decode rest left result
-                    | false -> decode rest right result
+            let rec buildBranch depth (codes: HuffmanPattern array) = 
+                match codes.Length with
+                | 0 -> ErrorLeaf
+                | 1 ->  
+                    let ch, data = codes.[0]
+                    if data.Length - 1 = depth then
+                        match ch with
+                        | 256 -> Leaf EOS
+                        | _ -> Simple (byte ch) |> Leaf
+                    else 
+                        let child = buildBranch (depth + 1) codes
+                        if data.[depth] then
+                            Node (child, ErrorLeaf)
+                        else 
+                            Node (ErrorLeaf, child)
 
-        let decompress data =
-            let resultData = decode data huffmanTree []
-            new String(resultData |> List.rev |> List.toArray)
+                | _ -> 
+                    let err = 
+                        codes
+                        |> Seq.exists 
+                            (fun (_, arr) -> arr.Length - 1 = depth)
+                    if err then
+                        failwith "The encoding table contains an ambiguous encoding."
+
+                    buildNode (depth + 1) codes
+            and buildNode depth candidates =
+                let left, right =
+                    candidates
+                    |> Array.filter (fun (_, d) -> longEnough depth d)
+                    |> Array.partition (fun (_, d) -> d.[depth])
+                let leftBranch = buildBranch depth left
+                let rightBranch = buildBranch depth right
+                Node (leftBranch, rightBranch)
+
+            buildNode 0 table
+
+//        let rec decode data treeNode result =
+//                match data, treeNode with
+//                | _, ErrorLeaf -> failwith ""
+//                | [], Node _ -> failwith ""
+//                | [], Leaf c -> c :: result
+//                | _, Leaf c -> decode data treeNode (c :: result)
+//                | bit :: rest, Node (left, right) -> 
+//                    match bit with
+//                    | true -> decode rest left result
+//                    | false -> decode rest right result
+//
+//        let decompress data =
+//            let resultData = decode data huffmanTree []
+//            new String(resultData |> List.rev |> List.toArray)
 
     
     type IndexingAction =
