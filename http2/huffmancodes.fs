@@ -227,7 +227,7 @@ module huffmancodes =
         219, [|true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; false; true; false; false; true|];
         220, [|true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; false; true|];
         221, [|true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; false; false; false; true; true|];
-        222, [|true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; false; false; true; false|];
+        222, [|true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; false; false; true; false; false|];
         223, [|true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; false; false; true; false; true|];
         224, [|true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; false; true; true; false; false|];
         225, [|true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; true; false; false; true; true|];

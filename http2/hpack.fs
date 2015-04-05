@@ -73,21 +73,45 @@ module hpack =
 
             buildNode 0 table
 
-//        let rec decode data treeNode result =
-//                match data, treeNode with
-//                | _, ErrorLeaf -> failwith ""
-//                | [], Node _ -> failwith ""
-//                | [], Leaf c -> c :: result
-//                | _, Leaf c -> decode data treeNode (c :: result)
-//                | bit :: rest, Node (left, right) -> 
-//                    match bit with
-//                    | true -> decode rest left result
-//                    | false -> decode rest right result
-//
-//        let decompress data =
-//            let resultData = decode data huffmanTree []
-//            new String(resultData |> List.rev |> List.toArray)
+        let httpHuffmanTable = buildHuffmanTree huffmancodes.table
 
+
+        let decodeWithTree tree data =
+            let stepToNextNode bit currentNode =
+                match bit, currentNode with
+                | _, ErrorLeaf -> failwith "Encoutered a bit string that does not match a valid pattern in the given encoding."
+                | _, Leaf _ -> failwith "Cannot keep decoding a bit string from a Leaf node"
+                | true, Node (left, _) -> left
+                | false, Node (_, right) -> right
+
+            let doDecode (res: EncodedChar list, node: TreeNode) (bit: bool) =
+                let nextNode = stepToNextNode bit node
+                match nextNode with
+                | ErrorLeaf -> failwith ""
+                | Node _ -> res, nextNode
+                | Leaf ch -> (ch :: res), tree //return tree because we have reached a leaf and can start again
+                
+            let decodedData, _ = 
+                data
+                |> List.fold doDecode ([], tree)
+            let resultData =
+                decodedData
+                |> List.rev
+                |> Seq.takeWhile 
+                    (fun encodedChar -> 
+                        match encodedChar with
+                        | Simple _ -> true
+                        | EOS -> false)
+                |> Seq.map
+                    (fun encCh ->
+                        match encCh with
+                        | Simple ch -> ch
+                        | EOS -> failwith "Encountered EOS after it should have been filtered out...")
+                |> Seq.toArray
+            new String(resultData)
+
+        let decompress data =
+            decodeWithTree httpHuffmanTable data
     
     type IndexingAction =
         | Incremental
