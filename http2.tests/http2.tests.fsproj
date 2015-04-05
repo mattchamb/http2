@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="huffmantreebuilding.fs" />
     <Compile Include="huffmandecoding.fs" />
+    <Compile Include="headerdecoding.fs" />
     <Content Include="packages.config" />
     <Content Include="app.config" />
   </ItemGroup>

@@ -112,34 +112,11 @@ module hpack =
 
         let decompress data =
             decodeWithTree httpHuffmanTable data
-    
-    type IndexingAction =
-        | Incremental
-        | NonIndexed
-
-    type LiteralHeaderKind =
-        | IndexedName of IndexingAction * int * string
-        | NewName of IndexingAction * string * string
-
-    type HeaderRepresentation = 
-        | LiteralHeader of LiteralHeaderKind
-        | IndexedHeader of int
-
-    type EncodedHeaderBlock = HeaderRepresentation list
-
+        
     type HeaderTableEntry = {
         Name: string;
         Value: string
     }
-
-    let (|Static|Dynamic|Error|) index = 
-        if index <= 0 then
-            Error
-        else if index <= 61 then
-            Static
-        else
-            Dynamic
-        
 
     let staticHeaderTable =
         [|
@@ -207,27 +184,79 @@ module hpack =
         |]
 
     type DynamicHeaderTable = {
-        entries: (string * string) list
+        entries: HeaderTableEntry list
     }
-        
-    let decodeHeaderList (headers: HeaderRepresentation list) =
-        let decodeHeader header = 
+
+    let lookup table index =
+        let len = table.entries.Length
+        match len with
+        | 0 -> None
+        | _ when index >= len -> None
+        | _ -> Some (List.nth table.entries index)
+
+    type IndexingAction =
+        | Incremental
+        | NonIndexed
+
+    type LiteralHeaderKind =
+        | IndexedName of IndexingAction * int * string
+        | NewName of IndexingAction * string * string
+
+    type HeaderRepresentation = 
+        | LiteralHeader of LiteralHeaderKind
+        | IndexedHeader of int
+
+    type EncodedHeaderBlock = HeaderRepresentation list
+
+    let (|Static|Dynamic|Error|) index = 
+        if index <= 0 then
+            Error
+        else if index <= 61 then
+            Static
+        else
+            Dynamic
+
+    let decodeLiteralHeader header dynamicTable =
+        match header with
+        | IndexedName(idxAction, tblIdx, v) -> 
+            match tblIdx with
+            | Static -> 
+                idxAction, { staticHeaderTable.[tblIdx] with Value = v }
+            | Dynamic -> 
+                let r = lookup dynamicTable tblIdx
+                match r with
+                | None -> failwith ""
+                | Some hdr -> idxAction, hdr
+            | Error -> 
+                failwith ""
+        | NewName(idxAction, n, v) -> 
+            idxAction, {Name = n; Value = v}
+
+    let decodeHeaderWithTable header dynamicTable = 
             match header with
             | LiteralHeader data -> 
-                match data with
-                | IndexedName(_, tblIdx, v) -> 
-                    match tblIdx with
-                    | Static -> {Name = ""; Value = v}
-                    | Dynamic -> {Name = ""; Value = v}
-                    | Error -> failwith ""
-                | NewName(_, n, v) -> {Name = n; Value = v}
-
-            | IndexedHeader index -> 
-                if index < 0 then
-                    failwith "Invalid index is a negative number."
-                else if index < staticHeaderTable.Length then
-                    staticHeaderTable.[index]
+                let idxAction, decodedHdr = decodeLiteralHeader data dynamicTable
+                Some idxAction, decodedHdr
+            | IndexedHeader tblIdx -> 
+                if tblIdx < 0 then
+                    failwith "Invalid index: negative number."
+                else if tblIdx < staticHeaderTable.Length then
+                    None, staticHeaderTable.[tblIdx]
                 else 
-                    failwith "Could not find indexed value in static table. TODO: lookup in dynamic table."
-        headers
-        |> List.map decodeHeader
+                    let header = lookup dynamicTable tblIdx
+                    match header with
+                    | None -> failwith ""
+                    | Some hdr -> None, hdr
+                    
+
+    let updateDynamicTable header table =
+        table
+    
+    let processHeader header dynamicTable =
+        let updateAction, headerResult = decodeHeaderWithTable header dynamicTable
+        match updateAction with
+        | Some action -> 
+            let updatedTable = updateDynamicTable headerResult dynamicTable
+            headerResult, updatedTable
+        | None -> 
+            headerResult, dynamicTable
